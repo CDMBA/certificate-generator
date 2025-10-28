@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Certificate Generator</title>
+
+  <!-- Include fonts and libraries -->
+  <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+  <style>
+    :root {
+      --gold: #9C7B16;
+      --name-top: 46.5%;
+      --name-width: 70%;
+    }
+
+    body {
+      margin: 0;
+      background: #0e6677;
+      font-family: system-ui, sans-serif;
+    }
+
+    .app {
+      max-width: 1200px;
+      margin: 24px auto;
+      padding: 16px;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+      background: #fff;
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 16px;
+    }
+
+    .controls input {
+      font-size: 18px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid #cbd5e1;
+      width: 100%;
+    }
+
+    .controls button {
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 0;
+      background: #0ea5a5;
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .frame {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1086 / 768;
+      background: #fff;
+      border-radius: 18px;
+      overflow: hidden;
+    }
+
+    .bg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: 1;
+    }
+
+    .name-line {
+      position: absolute;
+      z-index: 2;
+      left: 50%;
+      top: var(--name-top);
+      transform: translate(-50%, -50%);
+      width: var(--name-width);
+      text-align: center;
+      font-family: 'Great Vibes', cursive;
+      color: var(--gold);
+      font-size: 42px;
+      line-height: 1.20;
+      text-shadow: 0.5px 0.5px 0 rgba(0,0,0,0.22);
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <div class="controls">
+      <input id="nameInput" type="text" placeholder="Type recipient name...">
+      <button id="downloadBtn" disabled>Download PDF</button>
+    </div>
+
+    <div id="capture" class="frame">
+      <img class="bg" src="Certificate of Completion 4.png" alt="Certificate background">
+      <div id="nameText" class="name-line"></div>
+    </div>
+  </div>
+
+  <!-- The working script -->
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      const input = document.getElementById('nameInput');
+      const nameText = document.getElementById('nameText');
+      const btn = document.getElementById('downloadBtn');
+      const captureEl = document.getElementById('capture');
+
+      function update() {
+        const v = input.value.trim();
+        nameText.textContent = v || ' ';
+        btn.disabled = v.length === 0;
+      }
+
+      input.addEventListener('input', update);
+      input.addEventListener('keydown', e => {
+        if (e.key === 'Enter' && !btn.disabled) downloadPDF();
+      });
+      update();
+
+      async function downloadPDF() {
+        btn.disabled = true;
+        try {
+          const canvas = await html2canvas(captureEl, {
+            useCORS: true,
+            backgroundColor: null,
+            scale: 3
+          });
+
+          const dataUrl = canvas.toDataURL('image/png');
+          const { jsPDF } = window.jspdf;
+          const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+
+          const pageW = pdf.internal.pageSize.getWidth();
+          const pageH = pdf.internal.pageSize.getHeight();
+          const ratio = Math.min(pageW / canvas.width, pageH / canvas.height);
+          const pdfW = canvas.width * ratio;
+          const pdfH = canvas.height * ratio;
+          const x = (pageW - pdfW) / 2;
+          const y = (pageH - pdfH) / 2;
+
+          pdf.addImage(dataUrl, 'PNG', x, y, pdfW, pdfH);
+          const safeName = (input.value || 'Certificate').replace(/[\\/:*?"<>|]/g, '').trim();
+          pdf.save(`CDM Certificate - ${safeName}.pdf`);
+        } catch (err) {
+          alert('Error exporting the PDF.');
+          console.error(err);
+        } finally {
+          update();
+        }
+      }
+
+      btn.addEventListener('click', downloadPDF);
+    });
+  </script>
+</body>
+</html>
